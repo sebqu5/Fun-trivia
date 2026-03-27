@@ -118,6 +118,13 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
+      window.addEventListener('load', () => {
+    // Register the service worker first
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(() => console.log('Service Worker registered'))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    }
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
@@ -133,10 +140,6 @@
             };
 
       document.body.appendChild(script);
-                if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('ServiceWorker.js')
-    .then(() => console.log('Service Worker registered'))
-    .catch(err => console.log('Service Worker failed:', err));
 }
 
     </script>
