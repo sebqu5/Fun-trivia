@@ -116,60 +116,42 @@
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-function initUnity() {
-    createUnityInstance(document.querySelector("#unity-canvas"), {
-        codeUrl: "./Build/FunTriviaBuild.wasm",
-        dataUrl: "./Build/FunTriviaBuild.data",
-        frameworkUrl: "./Build/FunTriviaBuild.framework.js",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "YourCompany",
-        productName: "FunTrivia",
-        productVersion: "1.0",
-    });
-}
-
-window.addEventListener('load', () => {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./ServiceWorker.js')
-            .then(reg => {
-                console.log('Service Worker registered');
-
-                // Wait until SW is controlling the page
-                if (navigator.serviceWorker.controller) {
-                    initUnity();
-                } else {
-                    navigator.serviceWorker.addEventListener('controllerchange', () => {
-                        initUnity();
-                    });
-                }
-            })
-            .catch(err => {
-                console.error('SW registration failed:', err);
-                initUnity(); // fallback online
-            });
-    } else {
-        initUnity(); // fallback if SW not supported
-    }
-});
-
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-
-              }).catch((message) => {
-                alert(message);
-              });
+  function loadUnity() {
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+          createUnityInstance(canvas, config, (progress) => {
+            document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+          }).then((unityInstance) => {
+            document.querySelector("#unity-loading-bar").style.display = "none";
+            document.querySelector("#unity-fullscreen-button").onclick = () => {
+              unityInstance.SetFullscreen(1);
             };
+          }).catch((message) => {
+            alert(message);
+          });
+        };
+        document.body.appendChild(script);
+      }
+
+      // Register service worker and then load Unity
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(() => {
+            console.log('Service Worker registered');
+            loadUnity();
+          })
+          .catch(err => {
+            console.warn('SW registration failed', err);
+            loadUnity(); // fallback if SW fails
+          });
+      } else {
+        loadUnity(); // fallback if SW not supported
+      }
+
 
       document.body.appendChild(script);
-}
+
 
     </script>
   </body>
