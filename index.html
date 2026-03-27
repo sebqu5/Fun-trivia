@@ -136,7 +136,7 @@
 
       // Register service worker and then load Unity
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./service-worker.js')
+        navigator.serviceWorker.register('./ServiceWorker.js')
           .then(() => {
             console.log('Service Worker registered');
             loadUnity();
