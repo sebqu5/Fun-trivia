@@ -119,14 +119,33 @@
       var script = document.createElement("script");
       script.src = loaderUrl;
   window.addEventListener('load', () => {
-    // 1️⃣ Register service worker first
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js')
-            .then(() => console.log('Service Worker registered'))
-            .catch(err => console.error('Service Worker registration failed:', err));
-    }
+            .then(reg => {
+                console.log('Service Worker registered');
 
-    // 2️⃣ Initialize Unity after SW registration
+                // Wait until the SW is active
+                if (reg.installing) {
+                    reg.installing.addEventListener('statechange', () => {
+                        if (reg.installing.state === 'activated') {
+                            initUnity();
+                        }
+                    });
+                } else if (reg.waiting) {
+                    initUnity();
+                } else if (reg.active) {
+                    initUnity();
+                }
+            })
+            .catch(err => console.error('SW registration failed:', err));
+    } else {
+        // Fallback if no service worker
+        initUnity();
+    }
+});
+
+// Function to start Unity
+function initUnity() {
     createUnityInstance(document.querySelector("#unity-canvas"), {
         codeUrl: "./Build/FunTriviaBuild.wasm",
         dataUrl: "./Build/FunTriviaBuild.data",
@@ -136,7 +155,7 @@
         productName: "FunTrivia",
         productVersion: "1.0",
     });
-});
+}
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
