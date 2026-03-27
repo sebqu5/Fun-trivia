@@ -1,11 +1,11 @@
 const CACHE_NAME = 'funtrivia-cache-v1';
 const urlsToCache = [
-  '/',
+  '/', // root page
   '/index.html',
   '/Build/FunTriviaBuild.wasm',
   '/Build/FunTriviaBuild.data',
   '/Build/FunTriviaBuild.framework.js',
-  '/StreamingAssets/',       // if used
+  '/StreamingAssets/',   // add your StreamingAssets if used
   '/icon-192.png',
   '/icon-512.png'
 ];
@@ -14,11 +14,11 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
-  self.skipWaiting(); // Activate immediately
+  self.skipWaiting(); // activate immediately
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim()); // Take control immediately
+  event.waitUntil(self.clients.claim()); // take control immediately
 });
 
 self.addEventListener('fetch', event => {

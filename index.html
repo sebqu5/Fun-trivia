@@ -118,7 +118,7 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
- function initUnity() {
+function initUnity() {
     createUnityInstance(document.querySelector("#unity-canvas"), {
         codeUrl: "./Build/FunTriviaBuild.wasm",
         dataUrl: "./Build/FunTriviaBuild.data",
@@ -136,7 +136,7 @@ window.addEventListener('load', () => {
             .then(reg => {
                 console.log('Service Worker registered');
 
-                // Only initialize Unity when SW is controlling the page
+                // Wait until SW is controlling the page
                 if (navigator.serviceWorker.controller) {
                     initUnity();
                 } else {
