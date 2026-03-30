@@ -13,7 +13,7 @@ const PRECACHE_URLS = [
     BASE_PATH + "icon-512.png"
 ];
 
-/* Generate cache version from loader.js content */
+/* ========= Generate cache version from loader.js content ========= */
 async function getBuildVersion() {
     const response = await fetch(VERSION_FILE, { cache: "no-store" });
     const text = await response.text();
@@ -27,12 +27,13 @@ async function getBuildVersion() {
     return "funtrivia-" + hash;
 }
 
-/* INSTALL: precache Unity files */
+/* ========= INSTALL ========= */
 self.addEventListener("install", event => {
     event.waitUntil((async () => {
         const version = await getBuildVersion();
         const cache = await caches.open(version);
 
+        // Cache each file individually to preserve binary integrity
         for (const url of PRECACHE_URLS) {
             try {
                 const response = await fetch(url, { cache: "reload" });
@@ -46,12 +47,13 @@ self.addEventListener("install", event => {
     })());
 });
 
-/* ACTIVATE: delete old caches */
+/* ========= ACTIVATE ========= */
 self.addEventListener("activate", event => {
     event.waitUntil((async () => {
         const version = await getBuildVersion();
         const keys = await caches.keys();
 
+        // Delete old Unity caches
         await Promise.all(
             keys.map(key => key !== version && caches.delete(key))
         );
@@ -60,10 +62,23 @@ self.addEventListener("activate", event => {
     })());
 });
 
-/* FETCH: serve all cached assets offline */
+/* ========= FETCH ========= */
 self.addEventListener("fetch", event => {
 
-    // Safari offline navigation fix
+    // Network-first for index.html to allow updates
+    if (event.request.url.endsWith("index.html")) {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    caches.open("index-html-cache").then(cache => cache.put(event.request, response.clone()));
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Navigation requests (iOS offline fix)
     if (event.request.mode === "navigate") {
         event.respondWith(
             caches.match(BASE_PATH + "index.html")
@@ -72,7 +87,7 @@ self.addEventListener("fetch", event => {
         return;
     }
 
-    // Cache-first for all precached files
+    // Cache-first for Unity binaries
     event.respondWith(
         caches.match(event.request).then(response => response || fetch(event.request))
     );
