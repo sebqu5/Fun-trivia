@@ -57,12 +57,12 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/7419656325eb269879e57ca50b111836.loader.js";
+      var loaderUrl = buildUrl + "/FunTriviaBuild.loader.js";
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/64130143e7622fe9f3709c734e94e3cf.data",
-        frameworkUrl: buildUrl + "/857af9ded351cac4e8d5bb685767e954.framework.js",
-        codeUrl: buildUrl + "/bf289a245414de8e6b062bd1703e5c5a.wasm",
+        dataUrl: buildUrl + "/FunTriviaBuild.data",
+        frameworkUrl: buildUrl + "/FunTriviaBuild.framework.js",
+        codeUrl: buildUrl + "/FunTriviaBuild.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "Fun trivia",
@@ -115,7 +115,7 @@
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
-      function loadUnity() {
+function loadUnity() {
     var script = document.createElement("script");
     script.src = loaderUrl;
     script.onload = () => {
@@ -132,6 +132,7 @@
     };
     document.body.appendChild(script);
 }
+
       // Register service worker and then load Unity
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./ServiceWorker.js')
@@ -140,6 +141,8 @@
 } else {
     loadUnity();
 }
+
+
     </script>
   </body>
 </html>
