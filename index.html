@@ -117,18 +117,18 @@
       document.querySelector("#unity-loading-bar").style.display = "block";
 
  function loadUnity() {
-    // Check if offline and loader.js is cached
-    if (navigator.onLine === false && 'caches' in window) {
+    // Check if offline and caches available
+    if ('caches' in window && navigator.onLine === false) {
         caches.match(loaderUrl).then(cachedResponse => {
             if (cachedResponse) {
                 cachedResponse.text().then(jsCode => {
-                    // Execute cached loader immediately
+                    // Execute loader directly from cached JS
                     const script = document.createElement('script');
                     script.text = jsCode;
                     document.body.appendChild(script);
                 });
             } else {
-                // fallback to network
+                // fallback if loader not in cache
                 loadUnityOnline();
             }
         });
