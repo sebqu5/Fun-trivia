@@ -1,107 +1,88 @@
-const CACHE_NAME = 'funtrivia-cache-v3';
+const BASE_PATH = "/Fun-trivia/";
+const VERSION_FILE = BASE_PATH + "Build/FunTriviaBuild.loader.js";
 
-// IMPORTANT: GitHub Pages repo path
-const BASE_PATH = '/Fun-trivia/';
+// List of files to precache
+const PRECACHE_URLS = [
+    BASE_PATH,
+    BASE_PATH + "index.html",
 
-// Files required for offline play
-const CORE_ASSETS = [
-  BASE_PATH,
-  BASE_PATH + 'index.html',
+    BASE_PATH + "Build/FunTriviaBuild.loader.js",
+    BASE_PATH + "Build/FunTriviaBuild.framework.js",
+    BASE_PATH + "Build/FunTriviaBuild.data",
+    BASE_PATH + "Build/FunTriviaBuild.wasm",
 
-  // Unity build files
-  BASE_PATH + 'Build/FunTriviaBuild.loader.js',
-  BASE_PATH + 'Build/FunTriviaBuild.framework.js',
-  BASE_PATH + 'Build/FunTriviaBuild.data',
-  BASE_PATH + 'Build/FunTriviaBuild.wasm',
-
-  // Icons / PWA assets
-  BASE_PATH + 'icon-192.png',
-  BASE_PATH + 'icon-512.png'
+    BASE_PATH + "icon-192.png",
+    BASE_PATH + "icon-512.png"
 ];
 
+/* ========= Generate cache version from loader.js ========= */
+async function getBuildVersion() {
+    const response = await fetch(VERSION_FILE, { cache: "no-store" });
+    const text = await response.text();
 
-/* ================================
-   INSTALL
-   Cache core game files
-================================ */
-self.addEventListener('install', event => {
-  self.skipWaiting();
+    // simple hash from loader.js content
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+    }
+    return "funtrivia-" + hash;
+}
 
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(
-        CORE_ASSETS.map(url =>
-          new Request(url, { cache: 'reload' }) // important for Unity files
-        )
-      );
-    })
-  );
-});
+/* ========= INSTALL ========= */
+self.addEventListener("install", event => {
+    event.waitUntil((async () => {
+        const version = await getBuildVersion();
+        const cache = await caches.open(version);
 
-
-/* ================================
-   ACTIVATE
-   Clean old caches + take control
-================================ */
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
-    ).then(() => self.clients.claim())
-  );
-});
-
-
-/* ================================
-   FETCH
-================================ */
-self.addEventListener('fetch', event => {
-
-  const requestURL = new URL(event.request.url);
-
-  // ---- Handle navigation requests (Safari offline fix) ----
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match(BASE_PATH + 'index.html')
-        .then(response => response || fetch(event.request))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async cache => {
-
-      // Exact cache match
-      let response = await cache.match(event.request);
-      if (response) return response;
-
-      // Unity WebGL fix:
-      // match by filename because Unity uses relative paths
-      const filename = requestURL.pathname.split('/').pop();
-      const normalizedPath = BASE_PATH + 'Build/' + filename;
-
-      response = await cache.match(normalizedPath);
-      if (response) return response;
-
-      // Network fallback
-      try {
-        const networkResponse = await fetch(event.request);
-
-        if (networkResponse && networkResponse.status === 200) {
-          cache.put(event.request, networkResponse.clone());
+        // Pre-cache each file individually to preserve binary data
+        for (const url of PRECACHE_URLS) {
+            try {
+                const response = await fetch(url, { cache: "reload" });
+                await cache.put(url, response);
+                console.log("Cached:", url);
+            } catch (err) {
+                console.warn("Failed to cache:", url, err);
+            }
         }
 
-        return networkResponse;
-      } catch (err) {
-        console.warn("Offline and not cached:", event.request.url);
-        throw err;
-      }
-    })
-  );
+        self.skipWaiting();
+    })());
+});
+
+/* ========= ACTIVATE ========= */
+self.addEventListener("activate", event => {
+    event.waitUntil((async () => {
+        const version = await getBuildVersion();
+        const keys = await caches.keys();
+
+        // Delete old caches
+        await Promise.all(
+            keys.map(key => key !== version && caches.delete(key))
+        );
+
+        await self.clients.claim();
+    })());
+});
+
+/* ========= FETCH ========= */
+self.addEventListener("fetch", event => {
+
+    // Handle page navigation (Safari offline fix)
+    if (event.request.mode === "navigate") {
+        event.respondWith(
+            caches.match(BASE_PATH + "index.html")
+                .then(response => response || fetch(event.request))
+        );
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then(response => {
+            if (response) return response;
+
+            // fallback to network
+            return fetch(event.request);
+        })
+    );
 });
