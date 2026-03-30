@@ -1,4 +1,4 @@
-const CACHE_NAME = 'funtrivia-cache-v2';
+const CACHE_NAME = 'funtrivia-cache-v3';
 
 // IMPORTANT: GitHub Pages repo path
 const BASE_PATH = '/Fun-trivia/';
@@ -63,45 +63,45 @@ self.addEventListener('activate', event => {
 ================================ */
 self.addEventListener('fetch', event => {
 
-  // ---- Handle page navigation (Safari fix) ----
+  const requestURL = new URL(event.request.url);
+
+  // ---- Handle navigation requests (Safari offline fix) ----
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.match(BASE_PATH + 'index.html')
-        .then(response => {
-          return response || fetch(event.request);
-        })
+        .then(response => response || fetch(event.request))
     );
     return;
   }
 
-  // ---- Cache-first strategy for assets ----
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
+    caches.open(CACHE_NAME).then(async cache => {
 
-      if (cachedResponse) {
-        return cachedResponse;
+      // Exact cache match
+      let response = await cache.match(event.request);
+      if (response) return response;
+
+      // Unity WebGL fix:
+      // match by filename because Unity uses relative paths
+      const filename = requestURL.pathname.split('/').pop();
+      const normalizedPath = BASE_PATH + 'Build/' + filename;
+
+      response = await cache.match(normalizedPath);
+      if (response) return response;
+
+      // Network fallback
+      try {
+        const networkResponse = await fetch(event.request);
+
+        if (networkResponse && networkResponse.status === 200) {
+          cache.put(event.request, networkResponse.clone());
+        }
+
+        return networkResponse;
+      } catch (err) {
+        console.warn("Offline and not cached:", event.request.url);
+        throw err;
       }
-
-      return fetch(event.request)
-        .then(networkResponse => {
-
-          // Cache new successful requests
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            event.request.method === 'GET'
-          ) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, responseClone));
-          }
-
-          return networkResponse;
-        })
-        .catch(() => {
-          // Optional: fallback if offline asset missing
-          return caches.match(BASE_PATH + 'index.html');
-        });
     })
   );
 });
