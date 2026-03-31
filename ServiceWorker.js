@@ -1,7 +1,12 @@
-const BASE_PATH = "/Fun-trivia/";
-const VERSION_FILE = BASE_PATH + "Build/FunTriviaBuild.loader.js";
+const CACHE_VERSION = "funtrivia-v1.0.0";
 
-// Files to precache
+const BASE_PATH = "/Fun-trivia/";
+const CACHE_NAME = `${CACHE_VERSION}`;
+
+/* ===============================
+   FILES TO PRECACHE
+================================= */
+
 const PRECACHE_URLS = [
     BASE_PATH,
     BASE_PATH + "index.html",
@@ -13,82 +18,96 @@ const PRECACHE_URLS = [
     BASE_PATH + "icon-512.png"
 ];
 
-/* ========= Generate cache version from loader.js content ========= */
-async function getBuildVersion() {
-    const response = await fetch(VERSION_FILE, { cache: "no-store" });
-    const text = await response.text();
+/* ===============================
+   INSTALL
+================================= */
 
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-        hash = ((hash << 5) - hash) + text.charCodeAt(i);
-        hash |= 0;
-    }
-
-    return "funtrivia-" + hash;
-}
-
-/* ========= INSTALL ========= */
 self.addEventListener("install", event => {
     event.waitUntil((async () => {
-        const version = await getBuildVersion();
-        const cache = await caches.open(version);
 
-        // Cache each file individually to preserve binary integrity
+        const cache = await caches.open(CACHE_NAME);
+
+        // Force fresh downloads (ignore HTTP cache)
         for (const url of PRECACHE_URLS) {
             try {
-                const response = await fetch(url, { cache: "reload" });
+                const response = await fetch(url, { cache: "no-store" });
                 await cache.put(url, response);
             } catch (err) {
                 console.warn("Failed to cache:", url, err);
             }
         }
 
+        // Activate immediately
         self.skipWaiting();
+
     })());
 });
 
-/* ========= ACTIVATE ========= */
+/* ===============================
+   ACTIVATE
+================================= */
+
 self.addEventListener("activate", event => {
     event.waitUntil((async () => {
-        const version = await getBuildVersion();
+
         const keys = await caches.keys();
 
-        // Delete old Unity caches
+        // Delete old versions
         await Promise.all(
-            keys.map(key => key !== version && caches.delete(key))
+            keys.map(key => {
+                if (key !== CACHE_NAME) {
+                    return caches.delete(key);
+                }
+            })
         );
 
         await self.clients.claim();
+
+        // Notify open tabs about update
+        const clients = await self.clients.matchAll();
+        clients.forEach(client =>
+            client.postMessage({ type: "NEW_VERSION" })
+        );
+
     })());
 });
 
-/* ========= FETCH ========= */
+/* ===============================
+   FETCH
+================================= */
+
 self.addEventListener("fetch", event => {
 
-    // Network-first for index.html to allow updates
-    if (event.request.url.endsWith("index.html")) {
+    const request = event.request;
+
+    /* ---------- index.html ----------
+       Network-first so updates appear */
+    if (request.url.endsWith("index.html")) {
         event.respondWith(
-            fetch(event.request)
+            fetch(request)
                 .then(response => {
-                    caches.open("index-html-cache").then(cache => cache.put(event.request, response.clone()));
+                    caches.open(CACHE_NAME)
+                        .then(cache => cache.put(request, response.clone()));
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(() => caches.match(request))
         );
         return;
     }
 
-    // Navigation requests (iOS offline fix)
-    if (event.request.mode === "navigate") {
+    /* ---------- Navigation fallback (iOS fix) ---------- */
+    if (request.mode === "navigate") {
         event.respondWith(
             caches.match(BASE_PATH + "index.html")
-                .then(response => response || fetch(event.request))
+                .then(response => response || fetch(request))
         );
         return;
     }
 
-    // Cache-first for Unity binaries
+    /* ---------- Unity files ----------
+       Cache-first for performance */
     event.respondWith(
-        caches.match(event.request).then(response => response || fetch(event.request))
+        caches.match(request)
+            .then(response => response || fetch(request))
     );
 });
