@@ -147,7 +147,13 @@ navigator.serviceWorker.addEventListener("message", e => {
         location.reload();
     }
 });
-
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        if (typeof unityInstance !== "undefined") {
+            unityInstance.SendMessage("AudioManager", "StopAllAudio");
+        }
+    }
+});
 
     </script>
   </body>
