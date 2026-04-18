@@ -150,7 +150,7 @@ navigator.serviceWorker.addEventListener("message", e => {
  var unityInstance;
 
 createUnityInstance(canvas, config, (progress) => {}).then((instance) => {
-    unityInstance = instance;
+    unityInstance = instance;}
 
 document.addEventListener("visibilitychange", function () {
     if (document.hidden && unityInstance) {
