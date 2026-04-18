@@ -147,11 +147,19 @@ navigator.serviceWorker.addEventListener("message", e => {
     }
 });
 
-document.addEventListener("visibilitychange", function() {
-    if (document.hidden) {
-        if (typeof unityInstance !== "undefined") {
-            unityInstance.SendMessage("Audio", "StopAllAudio");
-        }
+ var unityInstance;
+
+createUnityInstance(canvas, config, (progress) => {}).then((instance) => {
+    unityInstance = instance;
+
+document.addEventListener("visibilitychange", function () {
+    if (document.hidden && unityInstance) {
+        unityInstance.SendMessage("Audio", "StopAllAudio");
+    }
+});
+window.addEventListener("pagehide", function () {
+    if (unityInstance) {
+        unityInstance.SendMessage("Audio", "StopAllAudio");
     }
 });
 
