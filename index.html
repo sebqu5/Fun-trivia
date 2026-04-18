@@ -30,7 +30,6 @@
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
-
       // Shows a temporary message banner/ribbon for a few seconds, or
       // a permanent error message on top of the canvas if type=='error'.
       // If type=='warning', a yellow highlight color is used.
@@ -147,10 +146,11 @@ navigator.serviceWorker.addEventListener("message", e => {
         location.reload();
     }
 });
+
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         if (typeof unityInstance !== "undefined") {
-            unityInstance.SendMessage("AudioManager", "StopAllAudio");
+            unityInstance.SendMessage("Audio", "StopAllAudio");
         }
     }
 });
