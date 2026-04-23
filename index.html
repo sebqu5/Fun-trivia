@@ -1,19 +1,6 @@
 <!DOCTYPE html>
 <html lang="en-us">
 <head>
-    <style>
-        html, body {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        #unity-canvas {
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#FFD700">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -186,11 +173,6 @@ window.addEventListener("pagehide", function () {
 
 window.addEventListener("blur", function () {
     stopAudio();
-});
-   window.addEventListener("orientationchange", function () {
- setTimeout(function () {
-   window.dispatchEvent(new Event("resize"));
- }, 200);
 });
 
     </script>
