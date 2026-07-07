@@ -54,6 +54,33 @@
         }
         updateBannerVisibility();
       }
+     let recovering = false;
+
+function fatalError(message) {
+
+    if (recovering)
+        return;
+
+    recovering = true;
+
+    console.error(message);
+
+    stopAudio();
+
+    if (unityInstance && unityInstance.Quit) {
+
+        unityInstance.Quit()
+            .catch(() => {})
+            .finally(() => {
+                location.reload();
+            });
+
+    } else {
+
+        location.reload();
+
+    }
+}
 
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/FunTriviaBuild.loader.js";
@@ -67,12 +94,13 @@
         productName: "Fun trivia",
         productVersion: "1.0",
         showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
+        errorHandler: function(err, url, line) {
+            console.error(err);
+
+    fatalError(err);
+
+    return true;
+         },
       };
 
       // By default, Unity keeps WebGL canvas render target size matched with
@@ -111,11 +139,30 @@
         canvas.style.width = "960px";
         canvas.style.height = "600px";
       }
+        canvas.addEventListener("webglcontextlost", function (e) {
+    e.preventDefault();
+
+    console.warn("WebGL context lost");
+
+    fatalError("WebGL context lost");
+});
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
          var unityInstance = null;
+        
+
+window.addEventListener("error", function (event) {
+    fatalError(event.message);
+});
+
+window.addEventListener("unhandledrejection", function (event) {
+    fatalError(event.reason);
+});
 function loadUnity() {
+          let loadTimeout = setTimeout(() => {
+        fatalError("Unity load timed out");
+    }, 60000); // 60 seconds
   var script = document.createElement("script");
     script.src = loaderUrl;
 
@@ -134,11 +181,18 @@ function loadUnity() {
             };
 
         }).catch((message) => {
-            alert(message);
+              clearTimeout(loadTimeout);
+
+            fatalError(message);
         });
 
     };
+          script.onerror = () => {
 
+        clearTimeout(loadTimeout);
+
+        fatalError("Failed to load Unity loader.");
+    };
     document.body.appendChild(script);
 }
 
