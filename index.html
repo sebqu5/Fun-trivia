@@ -97,8 +97,6 @@ function fatalError(message) {
         errorHandler: function(err, url, line) {
             console.error(err);
 
-    fatalError(err);
-
     return true;
          },
       };
@@ -143,22 +141,12 @@ function fatalError(message) {
     e.preventDefault();
 
     console.warn("WebGL context lost");
-
-    fatalError("WebGL context lost");
 });
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
          var unityInstance = null;
-        
 
-window.addEventListener("error", function (event) {
-    fatalError(event.message);
-});
-
-window.addEventListener("unhandledrejection", function (event) {
-    fatalError(event.reason);
-});
 function loadUnity() {
           let loadTimeout = setTimeout(() => {
         fatalError("Unity load timed out");
@@ -171,6 +159,8 @@ function loadUnity() {
         createUnityInstance(canvas, config, (progress) => {
             document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
         }).then((instance) => {
+
+         clearTimeout(loadTimeout);
 
             unityInstance = instance;
 
@@ -211,8 +201,13 @@ navigator.serviceWorker.addEventListener("message", e => {
     }
 });
     function stopAudio() {
-    if (unityInstance) {
+        if (!unityInstance)
+        return;
+
+    try {
         unityInstance.SendMessage("audio", "StopAllAudio");
+    } catch (e) {
+        console.warn(e);
     }
 }
         document.addEventListener("visibilitychange", function () {
