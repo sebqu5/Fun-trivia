@@ -1,4 +1,4 @@
-const CACHE_VERSION = "funtrivia-v3.0.1";
+const CACHE_VERSION = "funtrivia-v3.0.2";
 
 const BASE_PATH = "/Fun-trivia/";
 const CACHE_NAME = `${CACHE_VERSION}`;
